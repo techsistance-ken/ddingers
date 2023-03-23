@@ -1,9 +1,32 @@
 <script>
-    import "carbon-components-svelte/css/all.css";
-    let theme = "g90"; // "white" | "g10" | "g80" | "g90" | "g100"
+    import Header from "../components/Header.svelte";
+
 </script>
- 
-<slot></slot>
- 
- <style>
- </style>
+
+<div class="mymaindiv">
+  <Header />
+    <div class="mymaincontainer">
+      <slot />
+  </div>
+</div>
+
+<style>
+  .mymaindiv {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+  }
+
+  .mymaincontainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 88%;
+    padding: 8px;
+    margin: 8px;
+    border-radius: 8px;
+  }
+
+
+</style>

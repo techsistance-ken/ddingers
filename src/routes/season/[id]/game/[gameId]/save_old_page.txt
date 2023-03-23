@@ -1,0 +1,315 @@
+<script>
+    import PlayerMangementList from '../../../../../components/PlayerMangementList.svelte';
+    import { Label, Input, ListgroupItem, Listgroup, Breadcrumb, BreadcrumbItem, Card, Radio, Button } from 'flowbite-svelte';
+    import { append, defaultTo, filter, find, findIndex, length, path, prop, remove, slice } from 'ramda';
+    import { gameStore } from '../../../../../stores/gameStore';
+    import Edit from "carbon-icons-svelte/lib/Edit.svelte";
+    import Add from "carbon-icons-svelte/lib/Add.svelte";
+    import TrashCan from "carbon-icons-svelte/lib/TrashCan.svelte";
+    import ResultsCardView from '../../../../../components/ResultsCardView.svelte';
+
+    /** @type {import('./$types').PageData} */
+    export let data;
+
+    let txtGamerId = ""
+    let txtRecord = ""
+    let oplatform = "PS5"
+
+    const GAME_MODE_COOP_RANKED = "coop_ranked";
+    const GAME_MODE_SOLO_RANKED = "solo_ranked";
+    const GAME_MODE_BATTLE_ROYALE = "battle_royale";
+    const GAME_MODE_EVENT = "event";
+
+    const gameModes = [
+        { id: GAME_MODE_COOP_RANKED, display: "CO-OP Ranked"},
+        { id: GAME_MODE_SOLO_RANKED, display: "Solo Ranked"},
+        { id: GAME_MODE_BATTLE_ROYALE, display: "Battle Royale"},
+        { id: GAME_MODE_EVENT, display: "Event"}
+    ]
+
+    let gameMode = GAME_MODE_COOP_RANKED;
+
+    const getGameModeDisplayText = (/** @type {string} */ gameModeId) => 
+                        defaultTo("NA",prop("display",find((/** @type {{ id: string; }} */ x)=>x.id == gameModeId)(gameModes)))
+
+    let season = data.season
+    let game = data.game
+    let gameCaptain =null;
+    let gamePlayer2 = null;
+    let gamePlayer3 = null;
+    let allPlayers = data.players
+
+    let playerSelectStep = 0;
+    let captainSelected = null;
+    let player2Selected = null;
+    let player3Selected = null;
+
+    const resetPlayers = () => {
+        playerSelectStep = 0;
+        captainSelected = null;
+        player2Selected = null;
+        player3Selected = null;
+    }
+
+    let gameModeEditorOpen = false;
+    let coopPlayersEditorOpen = false;
+    let opponentsEditorOpen = false;
+    let opponentsEditorAddNew = false;
+
+    let editOpponents = [];
+
+    let icons = [
+    { name: `Captain: ${captainSelected ? captainSelected : "--"}` },
+    { name: `Player 2: ${player2Selected ? player2Selected : "--"}` },
+    { name: `Player 3: ${player3Selected ? player3Selected : "--"}` },
+  ];
+
+
+    const deleteOpponent = opponentIndex => {
+
+        if(length(editOpponents) <= 1) {
+            editOpponents = [];
+            return;
+        }
+        else {
+            editOpponents = remove(opponentIndex,1)(editOpponents)
+        }
+
+
+    }
+    const saveOpponents = () => {
+//        gameStore.saveOpponents([{name: txtGamerId,platform: oplatform, record: txtRecord}])
+    }
+</script>
+{#if !season }
+...
+{:else}
+    <div style="margin-bottom: 8px;">
+        <Breadcrumb aria-label="Default breadcrumb example" solid>
+            <BreadcrumbItem href="/" home>Home</BreadcrumbItem>
+            <BreadcrumbItem href="/season/{season.id}">{season.name}</BreadcrumbItem>
+            <BreadcrumbItem>Game {game.id}</BreadcrumbItem>
+        </Breadcrumb>
+    </div>
+<Card>
+    <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Game Mode: {getGameModeDisplayText(gameStore.gameType)}
+    </h5>
+    <p class="font-normal text-gray-700 dark:text-gray-400 leading-tight">
+        {#if gameModeEditorOpen}
+            <ul class="w-48 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-600 divide-y divide-gray-200 dark:divide-gray-600">
+                {#each gameModes as gm}
+                    <li>
+                        <Radio class="p-3" bind:group={gameMode} value={gm.id}>{gm.display}</Radio>
+                    </li>
+                {/each}
+            </ul>
+            <Button on:click={() => {gameStore.setGameMode(gameMode); gameModeEditorOpen=false}}>Save</Button>
+            <Button on:click={() => {gameMode = game.gameMode; gameModeEditorOpen=false;}}>Cancel</Button>
+        {/if}
+    </p>
+    {#if gameModeEditorOpen==false}<Button on:click={() => gameModeEditorOpen=true}><Edit /></Button>{/if}
+</Card>
+
+<Card>
+<h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+CO-OP Players
+</h5>
+{#if coopPlayersEditorOpen }
+{#if playerSelectStep == 0 || playerSelectStep == 2 || playerSelectStep == 4 || playerSelectStep == 6}
+<Listgroup active class="w-64">
+    <ListgroupItem>
+        <div style="width=100%; flex-grow: 1; display: flex; flex-direction: row; justify-content: center;">
+            <div style="display: flex; flex-grow: 1; align-items: center; justify-content: center;">Captain:</div> 
+            <div style="display: flex; flex-grow: 2; justify-content: center; align-items=center;">
+            {#if captainSelected}
+                {captainSelected.name}
+            {:else}
+                <Button on:click={() => playerSelectStep=1}  pill={true} class="!p-2" size="sm"><Edit /></Button>    
+            {/if}
+            </div>
+        </div>
+    </ListgroupItem>
+    <ListgroupItem>
+        <div style="width=100%; flex-grow: 1; display: flex; flex-direction: row; justify-content: center;">
+            <div style="display: flex; flex-grow: 1; align-items: center; justify-content: center;">Player 2:</div> 
+            <div style="display: flex; flex-grow: 2; justify-content: center; align-items=center;">
+        {#if player2Selected}
+            {player2Selected.name}
+        {:else}
+            {#if playerSelectStep == 2}
+                <Button on:click={() => playerSelectStep=3}  pill={true} class="!p-2" size="sm"><Edit /></Button>    
+            {:else}
+                --
+            {/if}
+        {/if}
+        </div>
+    </div>
+    </ListgroupItem>
+    <ListgroupItem>
+        <div style="width=100%; flex-grow: 1; display: flex; flex-direction: row; justify-content: center;">
+            <div style="display: flex; flex-grow: 1; align-items: center; justify-content: center;">Player 3:</div> 
+            <div style="display: flex; flex-grow: 2; justify-content: center; align-items=center;">
+        {#if player3Selected}
+            {player3Selected.name}
+        {:else}
+            {#if playerSelectStep == 4 && length(allPlayers) > 2}
+                <Button on:click={() => playerSelectStep=5}  pill={true} class="!p-2" size="sm"><Edit /></Button>    
+            {:else}
+                --
+            {/if}
+        {/if}
+        </div>
+    </div>
+    </ListgroupItem>
+</Listgroup>
+
+{:else if playerSelectStep == 1}
+<PlayerMangementList
+    playerList={allPlayers}
+    playersSelectable={true}
+    playersEditable={false}
+    on:select={(e) => {playerSelectStep=2;captainSelected=e.detail}}
+/>
+{:else if playerSelectStep == 3}
+<PlayerMangementList
+    playerList={filter(x => x.id != captainSelected.id)(allPlayers)}
+    playersSelectable={true}
+    playersEditable={false}
+    on:select={(e) => {playerSelectStep=4;player2Selected=e.detail}}
+/>
+{:else if playerSelectStep == 5}
+<PlayerMangementList
+    playerList={filter(x => (x.id != player2Selected.id && x.id != captainSelected.id))(allPlayers)}
+    playersSelectable={true}
+    playersEditable={false}
+    on:select={(e) => {playerSelectStep=4;player2Selected=e.detail}}
+/>
+{/if}
+<p>
+    <Button on:click={() => {coopPlayersEditorOpen=false; gameStore.savePlayers(captainSelected,player2Selected,player3Selected); resetPlayers();}}>Save Players</Button>
+    <Button on:click={() => {resetPlayers(); coopPlayersEditorOpen=false;}}>Reset Players</Button>
+</p>
+{:else}
+<Listgroup active class="w-64">
+    <ListgroupItem>
+        <div style="width=100%; flex-grow: 1; display: flex; flex-direction: row; justify-content: center;">
+            <div style="display: flex; flex-grow: 1; align-items: center; justify-content: center;">Captain:</div> 
+            <div style="display: flex; flex-grow: 2; justify-content: center; align-items=center;">
+        {#if gameCaptain}
+            {gameCaptain.name}
+        {:else}
+                --
+        {/if}
+        </div>
+    </div>
+    </ListgroupItem>
+    <ListgroupItem>
+        <div style="width=100%; flex-grow: 1; display: flex; flex-direction: row; justify-content: center;">
+            <div style="display: flex; flex-grow: 1; align-items: center; justify-content: center;">Player 2:</div> 
+            <div style="display: flex; flex-grow: 2; justify-content: center; align-items=center;">
+        {#if gamePlayer2}
+            {gamePlayer2.name}
+        {:else}
+                --
+        {/if}
+        </div>
+    </div>
+    </ListgroupItem>
+    <ListgroupItem>
+        <div style="width=100%; flex-grow: 1; display: flex; flex-direction: row; justify-content: center;">
+            <div style="display: flex; flex-grow: 1; align-items: center; justify-content: center;">Player 3:</div> 
+            <div style="display: flex; flex-grow: 2; justify-content: center; align-items=center;">
+        {#if gamePlayer3}
+            {gamePlayer3.name}
+        {:else}
+                --
+        {/if}
+        </div>
+    </div>
+    </ListgroupItem>
+</Listgroup>
+<p>
+    <Button on:click={() => coopPlayersEditorOpen=true}><Edit /></Button>
+</p>
+{/if}
+</Card>
+
+<Card>
+    <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+       Opponent(s)
+    </h5>
+    {#if opponentsEditorOpen}
+        {#if opponentsEditorAddNew }
+            <Label class="space-y-2">
+                <span>Opponent Name</span>
+                <Input type="text" placeholder="gamer id or tag" size="sm" bind:value={txtGamerId}/>
+            </Label>
+            <p class="mb-4 font-semibold text-gray-900 dark:text-white">Platform</p>
+            <ul class="items-center w-full rounded-lg border border-gray-200 sm:flex dark:bg-gray-800 dark:border-gray-600 divide-x divide-gray-200 dark:divide-gray-600">
+                <li class="w-full"><Radio bind:group={oplatform} value="ps" class="p-3">PS</Radio></li>
+                <li class="w-full"><Radio bind:group={oplatform} value="xbx" class="p-3">XBX</Radio></li>
+                <li class="w-full"><Radio bind:group={oplatform} value="nin" class="p-3">Switch</Radio></li>
+            </ul>
+            <Label class="space-y-2">
+                <span>Record</span>
+                <Input type="text" placeholder="ex: 34-19" size="sm" bind:value={txtRecord} />
+            </Label> 
+            <Button on:click={() => {editOpponents=append({name: txtGamerId,platform: oplatform, record: txtRecord},editOpponents); editOpponents=editOpponents; console.log(editOpponents); opponentsEditorAddNew=false;}}>Save</Button>
+            <Button on:click={() => opponentsEditorAddNew=false}>Cancel</Button>
+        {:else}
+          <div style="
+            display: flex;
+            flex-direction: column;
+          " >
+                {#each editOpponents as opp, i}
+                <div style="
+                display: flex;
+                flex-direction: row;
+                margin-bottom: 8px;
+                ">
+                    <div style="flex-grow: 3; display: flex; align-items: center;">
+                        {opp.name}                    
+                    </div>
+                    <div style="flex-grow: 1; display: flex; justify-content: center; align-items: center;">
+                        <Button on:click={() => deleteOpponent(i)}><TrashCan /></Button>
+                    </div>
+
+                </div>
+                {/each}
+            {#if length(editOpponents) < 3}
+                <Button on:click={() => opponentsEditorAddNew=true}><Add /> Opponent</Button>
+            {/if}
+            </div>
+
+            <Button on:click={() => {
+                opponentsEditorAddNew = false;
+                opponentsEditorOpen = false;
+                gameStore.saveOpponents(editOpponents)
+
+            }}>Save</Button>
+            <Button on:click={() => {opponentsEditorAddNew=false;opponentsEditorOpen=false;}}>Cancel</Button>
+        {/if}
+
+        
+    {:else}
+        Opponent: 
+        <ul>
+            <li>{defaultTo("",path(["opponents",0,"name"],$gameStore))}</li>
+            <li>{defaultTo("",path(["opponents",1,"name"],$gameStore))}</li>
+            <li>{defaultTo("",path(["opponents",2,"name"],$gameStore))}</li>
+        </ul>
+        <Button pill={true} class="!p-2" size="sm" on:click={() => {
+            console.log(length($gameStore.opponents))
+            editOpponents = $gameStore.opponents;
+            length($gameStore.opponents) > 0 ? opponentsEditorAddNew = false : opponentsEditorAddNew = true;
+            opponentsEditorOpen=true;
+        }}><Edit /></Button>
+    {/if}
+</Card>
+
+<ResultsCardView 
+    result={$gameStore.result}
+    on:save={e => gameStore.saveResults(e.detail)}
+    />
+{/if}

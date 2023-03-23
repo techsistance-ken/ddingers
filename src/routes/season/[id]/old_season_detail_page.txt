@@ -1,0 +1,155 @@
+<script>
+import { Link } from 'carbon-components-svelte';
+import { descend, slice, prop, compose, defaultTo, find, length, sort, sortBy, identity } from 'ramda';
+import { page } from '$app/stores';
+import { seasonsStore } from '../../../stores/seasonsStore';
+import { Card, Heading, A, Drawer, Button, CloseButton, Sidebar, SidebarBrand, SidebarCta, SidebarDropdownItem, SidebarDropdownWrapper, SidebarGroup, SidebarItem, SidebarWrapper } from 'flowbite-svelte';
+import { sineIn } from 'svelte/easing';
+
+import Home from "carbon-icons-svelte/lib/Home.svelte";
+import TrashCan from "carbon-icons-svelte/lib/TrashCan.svelte";
+import GameConsole from "carbon-icons-svelte/lib/GameConsole.svelte";
+import ListNumbered from "carbon-icons-svelte/lib/ListNumbered.svelte";
+import Events from "carbon-icons-svelte/lib/Events.svelte";
+
+    import ScoreGrid from '../../../components/ScoreGrid.svelte';
+    import { goto } from '$app/navigation';
+    import { gameStore } from '../../../stores/gameStore';
+/** @type {import('./$types').PageData} */
+export let data;
+let hidden2 = true;
+  let spanClass = 'flex-1 ml-3 whitespace-nowrap';
+  let transitionParams = {
+    x: -320,
+    duration: 200,
+    easing: sineIn
+  };
+
+$: activeUrl = $page.url.pathname
+
+const getRecentGames = season => {
+  const games = defaultTo([], prop("games",season));
+
+  // if(length(games) == 0) return [];
+
+  console.log("Hi4",length(games))
+  const b = compose(
+    slice(0,5),
+    sort(descend(prop("created")))
+    )(games)
+
+   console.log("hi3",b && length(b) > 0 ? b[0].id : 0)
+
+   return b;
+}
+const showNavButton = false
+// @ts-ignore
+let season = {}
+let recentGames = []
+seasonsStore.subscribe(value => {
+// @ts-ignore
+   season = find(x => x.id == data.seasonId)(value.seasons)
+   // Lets sort and get the last five games based on DESC create date
+   recentGames = getRecentGames(season)
+});
+
+</script>
+
+<Drawer transitionType="fly" {transitionParams} bind:hidden={hidden2} id='sidebar2'>
+    <div class='flex items-center'>
+        <h5 id="drawer-navigation-label-3" class="text-base font-semibold text-gray-500 uppercase dark:text-gray-400">Season Menu</h5>
+        <CloseButton on:click={() => (hidden2 = true)} class='mb-4 dark:text-white'/>
+    </div>
+    <Sidebar>
+        <SidebarWrapper divClass='overflow-y-auto py-4 px-3 rounded dark:bg-gray-800'>
+          <SidebarGroup>
+            <SidebarItem label="Home">
+              <svelte:fragment slot="icon">
+                <Home />
+              </svelte:fragment>
+            </SidebarItem>
+            <SidebarItem label="Games">
+              <svelte:fragment slot="icon">
+                <TrashCan />
+              </svelte:fragment>
+            </SidebarItem>
+            <SidebarItem label="Player Stats">
+                <svelte:fragment slot="icon">
+                    <GameConsole />
+                </svelte:fragment>
+              </SidebarItem>
+            <SidebarItem label="Season Stats">
+                <svelte:fragment slot="icon">
+                    <ListNumbered />
+                </svelte:fragment>
+              </SidebarItem>
+            <SidebarItem label="Card Stats">
+                <svelte:fragment slot="icon">
+                    <Events/>
+                </svelte:fragment>
+              </SidebarItem>
+        </SidebarGroup>
+      </SidebarWrapper>
+    </Sidebar>
+</Drawer>
+
+{#if !season}
+No Season Found
+{:else}
+
+<div class="season-container">
+    <div>
+        <Heading color="white" tag="h1">{season.name}</Heading>
+        <A class="font-medium hover:underline" href="/">Back to Seasons</A>
+    </div>
+
+    <div style="margin-top: 18px;">
+        <Heading tag="h3" color="white">
+            Games
+        </Heading>
+        <Card>
+            <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">GAMES</h5>
+            <p class="mb-3 font-normal text-gray-700 dark:text-gray-400 leading-tight">
+              {defaultTo(0,length(season.games))} Games 
+            </p>
+            <ul>
+              {#each recentGames as game}
+                <li><a style="cursor: pointer;" href={null} on:keyup={() => console.log("keyup")} on:click={() => {
+                   gameStore.setup(season.id,game.id);
+                   goto(`${season.id}/game/${game.id}`);
+                  }}>{game.id}</a> - {game.created}</li>
+              {/each}
+            </ul>
+            <Button class="w-fit" on:click={() => goto(`${season.id}/games`)}>
+              Goto Games <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 ml-2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+            </Button>
+            <Button class="w-fit" on:click={() => seasonsStore.addGame(season.id)}>
+              Create Game
+            </Button>
+
+          </Card>
+
+    </div>
+    {#if showNavButton}
+    <div class="text-center">
+        <Button on:click={() => (hidden2 = false)}>Show navigation</Button>
+    </div>
+    {/if}
+
+    </div>
+{/if}
+
+<style>
+.container {
+    display:flex;
+    flex-direction: row;
+}
+.season-container {
+    flex-grow: 6;
+   display: flex;
+   flex-direction: column;
+   justify-content: center;
+   align-items: center;
+}
+
+</style>
